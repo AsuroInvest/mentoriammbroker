@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mentoria MM Broker — Curva de Juros</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#07120d;            /* fundo principal */
+      --grid:#123120;          /* linhas do grid */
+      --card:#0e1b14;          /* caixas */
+      --muted:#97ffaa1a;       /* borda sutil */
+      --text:#e8f8ed;          /* texto base */
+      --text-dim:#b3d6bf;      /* texto secundário */
+      --neon:#9BE65A;          /* verde principal */
+      --neon-strong:#7CE13B;   /* hover */
+      --danger:#ff6b6b;
+      --radius:22px;
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      color:var(--text); background:var(--bg);
+      line-height:1.6; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    }
+
+    /* === Fundo com grid === */
+    .grid-bg{
+      position:fixed; inset:0; z-index:-1; pointer-events:none;
+      background:
+        linear-gradient(180deg, rgba(0,0,0,.15), rgba(0,0,0,.15)),
+        radial-gradient(1000px 400px at 20% -10%, rgba(155,230,90,.08), transparent 70%),
+        radial-gradient(1000px 400px at 80% 110%, rgba(155,230,90,.08), transparent 70%),
+        repeating-linear-gradient(
+          90deg,
+          transparent 0 32px,
+          rgba(18,49,32,.4) 32px 33px
+        ),
+        repeating-linear-gradient(
+          0deg,
+          transparent 0 32px,
+          rgba(18,49,32,.4) 32px 33px
+        );
+      background-color:var(--bg);
+    }
+
+    /* === Layout base === */
+    .container{max-width:1200px; margin:0 auto; padding:32px 20px}
+    header.hero{padding:64px 0 20px; text-align:center}
+    .brand{
+      display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:24px;
+    }
+    .brand .logo{display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.5px}
+    .brand .logo span{height:12px; width:12px; border-radius:50%; background:var(--neon); box-shadow:0 0 18px var(--neon)}
+
+    /* Botão fixo topo direito */
+    .cta-top{
+      position:fixed; right:18px; top:16px; z-index:20;
+      background:var(--neon); color:#0a0a0a; text-decoration:none; font-weight:800; padding:12px 18px; border-radius:999px;
+      box-shadow:0 6px 16px rgba(155,230,90,.35); transition:transform .15s ease, background .2s ease;
+    }
+    .cta-top:hover{background:var(--neon-strong); transform:translateY(-1px)}
+
+    /* Hero - ALTERADO PARA MAIS DESTAQUE */
+    .kicker{
+      display:inline-block; 
+      background:linear-gradient(135deg, rgba(155,230,90,.15), rgba(155,230,90,.08)); 
+      border:1px solid var(--neon); 
+      color:var(--neon);
+      padding:12px 24px; 
+      border-radius:999px; 
+      font-weight:800; 
+      font-size:1.1rem; 
+      letter-spacing:.5px;
+      text-transform:uppercase;
+      box-shadow:0 0 20px rgba(155,230,90,.25);
+      animation:pulse 2s infinite;
+    }
+    
+    @keyframes pulse{
+      0%, 100% { box-shadow:0 0 20px rgba(155,230,90,.25); }
+      50% { box-shadow:0 0 30px rgba(155,230,90,.4); }
+    }
+    
+    h1.title{
+      font-size: clamp(2.2rem, 5vw, 3.5rem); 
+      margin:24px auto 16px; 
+      font-weight:900;
+      background:linear-gradient(135deg, var(--neon), var(--neon-strong));
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+      background-clip:text;
+      text-shadow:0 0 40px rgba(155,230,90,.3);
+    }
+    
+    p.subtitle{
+      max-width:980px; 
+      margin:0 auto; 
+      color:var(--text-dim); 
+      font-size: clamp(1.1rem, 1.8vw, 1.25rem);
+      font-weight:500;
+    }
+
+    /* Badge de garantido */
+    .trustline{margin:26px auto 24px; color:var(--text-dim);}
+
+    /* Oferta / Card de preço */
+    .pricing-wrap{display:flex; justify-content:center; margin:22px 0 10px}
+    .price-card{
+      width:min(680px, 100%); background:linear-gradient(180deg, rgba(155,230,90,.08), rgba(155,230,90,.03));
+      border:1px solid var(--muted); border-radius:var(--radius); padding:28px; box-shadow:var(--shadow);
+    }
+    .price-top{text-align:center}
+    .from{color:#9bb8a7; text-decoration:line-through; font-weight:600}
+    .now{font-size: clamp(2rem, 4vw, 2.6rem); font-weight:900; margin-top:4px}
+
+    .included{
+      display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin:22px 0 18px;
+    }
+    .inc{display:flex; gap:10px; align-items:flex-start; background:rgba(255,255,255,.03); padding:10px 12px; border-radius:14px; border:1px solid var(--muted)}
+    .inc svg{flex:0 0 auto; margin-top:2px}
+
+    .btn-primary{display:inline-flex; align-items:center; justify-content:center; gap:10px; width:100%;
+      background:var(--neon); color:#07120d; border:0; padding:16px 18px; font-weight:900; border-radius:999px; cursor:pointer;
+      box-shadow:0 12px 24px rgba(155,230,90,.25); transition:transform .15s ease, background .2s ease}
+    .btn-primary:hover{background:var(--neon-strong); transform:translateY(-1px)}
+
+    /* Timer */
+    .timer{max-width:820px; margin:18px auto 0; padding:14px 18px; border:1px dashed var(--muted); border-radius:999px; text-align:center; color:var(--text-dim)}
+    .timer strong{color:var(--text)}
+
+    /* Novos elementos de conversão */
+    .urgency-banner{
+      background:linear-gradient(135deg, var(--danger), #ff4757); 
+      color:#fff; 
+      padding:12px 20px; 
+      border-radius:12px; 
+      text-align:center; 
+      margin:16px auto; 
+      max-width:600px; 
+      font-weight:700;
+      animation:pulse-red 2s infinite;
+    }
+    @keyframes pulse-red{
+      0%, 100% { box-shadow:0 0 15px rgba(255,107,107,.3); }
+      50% { box-shadow:0 0 25px rgba(255,107,107,.5); }
+    }
+
+    .bestseller-badge{
+      position:absolute; 
+      top:-8px; 
+      right:16px; 
+      background:linear-gradient(135deg, #ff6b35, #f7931e); 
+      color:#fff; 
+      padding:6px 12px; 
+      border-radius:20px; 
+      font-size:.8rem; 
+      font-weight:800;
+      z-index:10;
+    }
+
+    .social-proof{
+      text-align:center; 
+      margin:30px auto; 
+      padding:16px; 
+      background:rgba(155,230,90,.05); 
+      border:1px solid var(--muted); 
+      border-radius:12px; 
+      max-width:500px;
+    }
+
+    .results-numbers{
+      background:linear-gradient(135deg, rgba(155,230,90,.08), rgba(155,230,90,.03)); 
+      border:1px solid var(--muted); 
+      border-radius:var(--radius); 
+      padding:40px 20px; 
+      margin:40px auto; 
+      text-align:center;
+    }
+    .stats-grid{
+      display:grid; 
+      grid-template-columns:repeat(3,1fr); 
+      gap:30px; 
+      margin-top:30px;
+    }
+    .stats-grid > div{
+      font-size:1.8rem; 
+      font-weight:900; 
+      color:var(--neon);
+    }
+    .stats-grid span{
+      display:block; 
+      font-size:.9rem; 
+      color:var(--text-dim); 
+      font-weight:400; 
+      margin-top:8px;
+    }
+
+    .opportunity-cost{
+      background:rgba(255,107,107,.05); 
+      border:1px solid rgba(255,107,107,.2); 
+      border-radius:var(--radius); 
+      padding:30px; 
+      text-align:center; 
+      margin:40px 0;
+    }
+    .opportunity-cost h2{
+      color:var(--danger); 
+      margin-bottom:15px;
+    }
+
+    .guarantee{
+      background:linear-gradient(135deg, rgba(155,230,90,.1), rgba(155,230,90,.05)); 
+      border:2px solid var(--neon); 
+      border-radius:16px; 
+      padding:16px 24px; 
+      text-align:center; 
+      margin:20px auto; 
+      max-width:600px; 
+      font-size:1.05rem;
+    }
+
+    .btn-secondary{
+      display:inline-flex; 
+      align-items:center; 
+      justify-content:center; 
+      gap:10px; 
+      width:100%;
+      background:transparent; 
+      color:var(--neon); 
+      border:2px solid var(--neon); 
+      padding:16px 18px; 
+      font-weight:700; 
+      border-radius:999px; 
+      cursor:pointer; 
+      margin-top:12px;
+      transition:all .2s ease;
+    }
+    .btn-secondary:hover{
+      background:var(--neon); 
+      color:#07120d;
+    }
+
+    .mobile-sticky-cta{
+      position:fixed; 
+      bottom:0; 
+      left:0; 
+      right:0; 
+      background:var(--bg); 
+      border-top:1px solid var(--muted); 
+      padding:12px 16px; 
+      z-index:100; 
+      display:none;
+    }
+
+    /* Responsividade adicional */
+    @media (max-width:768px){
+      .stats-grid{grid-template-columns:1fr;}
+      .mobile-sticky-cta{display:block;}
+      .stats-grid > div{font-size:1.4rem;}
+    }
+
+    /* Seções padrão */
+    section{padding:56px 0}
+    section .section-title{font-size: clamp(1.6rem, 3.2vw, 2rem); text-align:center; font-weight:900; margin-bottom:26px}
+
+    /* Features grid (cards) */
+    .features{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px}
+    .card{background:var(--card); border:1px solid var(--muted); border-radius:18px; padding:18px 18px 16px}
+    .card h3{display:flex; align-items:center; gap:10px; margin:0 0 8px; font-size:1.05rem}
+    .card p{margin:0; color:var(--text-dim)}
+
+    /* Lista com bullets verdes */
+    .bullets{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px}
+    .bullet{display:flex; align-items:flex-start; gap:10px; background:rgba(255,255,255,.03); border:1px solid var(--muted); padding:10px 12px; border-radius:12px}
+    .dot{width:10px; height:10px; border-radius:50%; background:var(--neon); margin-top:7px; box-shadow:0 0 8px var(--neon)}
+
+    /* Galeria e vídeo */
+    .gallery{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px}
+    .gallery img{width:100%; height:100%; object-fit:cover; border-radius:14px; border:1px solid var(--muted)}
+    .video{max-width:540px; margin:18px auto 0; border-radius:16px; overflow:hidden; border:1px solid var(--muted)}
+
+    /* CTA final */
+    .cta-final{display:flex; justify-content:center}
+
+    /* Rodapé */
+    footer{padding:30px 0 60px; text-align:center; color:#86a992; font-size:.95rem}
+
+    /* Toastzinho de prova social */
+    .toast{position:fixed; left:18px; bottom:18px; background:rgba(9,20,14,.92); border:1px solid var(--muted); border-radius:16px; padding:14px 16px; width:min(320px, 90vw); box-shadow:var(--shadow); animation:slideIn .6s ease forwards}
+    .toast .mini{font-size:.92rem; color:var(--text-dim)}
+    @keyframes slideIn{from{transform:translateY(30px); opacity:0} to{transform:translateY(0); opacity:1}}
+
+    /* Responsividade */
+    @media (max-width:980px){
+      .features{grid-template-columns:1fr 1fr}
+      .included{grid-template-columns:1fr}
+      .bullets{grid-template-columns:1fr}
+      .gallery{grid-template-columns:1fr 1fr}
+    }
+    @media (max-width:640px){
+      .features{grid-template-columns:1fr}
+      .gallery{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-bg" aria-hidden="true"></div>
+
+  <a class="cta-top" href="#checkout">ADQUIRIR AGORA</a>
+
+  <div class="container">
+    <header class="hero">
+      <div class="brand">
+        <div class="logo"><span></span><strong>ASURO</strong></div>
+      </div>
+
+      <span class="kicker">✦ Mentoria MM Broker ✦ Curva de Juros</span>
+      <h1 class="title">Aprenda a operar como Tesouraria Institucional e domine a Curva de Juros</h1>
+      <p class="subtitle">Treinamento completo com visão macro, leitura de fluxo e estratégias práticas aplicadas ao <strong>Dólar Futuro</strong> e <strong>DI</strong>. Estrutura enxuta, objetiva e projetada para consistência.</p>
+
+      <div class="social-proof">
+        <strong>+1.247 traders</strong> já transformaram seus resultados | 
+        <strong>Nota 4.9/5</strong> ⭐⭐⭐⭐⭐
+      </div>
+
+      <p class="trustline">Garantia de acesso imediato + atualizações futuras.</p>
+
+      <div class="pricing-wrap" id="checkout">
+        <div class="price-card" style="position:relative;">
+          <div class="bestseller-badge">🏆 MAIS ESCOLHIDO</div>
+          <div class="price-top">
+            <div class="from">De R$ 3.497,00</div>
+            <div class="now">por R$ 2.497,00</div>
+          </div>
+
+          <div class="included">
+            <div class="inc">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 6L9 17l-5-5" stroke="#9BE65A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <div><strong>Mentoria personalizada</strong><br><span class="mini">Acompanhamento direto para acelerar resultados.</span></div>
+            </div>
+            <div class="inc">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 6L9 17l-5-5" stroke="#9BE65A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <div><strong>Curso bônus completo</strong><br><span class="mini">+30 horas de conteúdo gravado.</span></div>
+            </div>
+            <div class="inc">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 6L9 17l-5-5" stroke="#9BE65A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <div><strong>Estratégias de Curva de Juros</strong><br><span class="mini">DI, cupom, paridade externa e arbitragem.</span></div>
+            </div>
+            <div class="inc">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 6L9 17l-5-5" stroke="#9BE65A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <div><strong>Leitura de fluxo aplicada</strong><br><span class="mini">Operacional prático com gestão de risco.</span></div>
+            </div>
+          </div>
+
+          <button class="btn-primary" onclick="scrollToBottom()">
+            🚀 QUERO DOMINAR A CURVA DE JUROS AGORA
+            <small style="display:block; font-size:0.8rem; font-weight:400; margin-top:4px;">Acesso liberado em 30 segundos</small>
+          </button>
+          
+          <button class="btn-secondary" onclick="scrollToBottom()">
+            ⚠️ Não quero perder essa oportunidade
+          </button>
+
+          <div class="timer">Oferta especial termina em: <strong id="countdown">--:--:--</strong></div>
+          
+          <div class="urgency-banner">
+            ⚠️ <strong>ÚLTIMAS 24 VAGAS</strong> - Turma limitada para garantir qualidade do acompanhamento
+          </div>
+        </div>
+      </div>
+
+      <div class="guarantee">
+        🛡️ <strong>GARANTIA BLINDADA de 7 dias</strong> - Se não gostar, devolvemos 100% do valor
+      </div>
+    </header>
+
+    <section class="results-numbers">
+      <h2 class="section-title">Resultados Comprovados</h2>
+      <div class="stats-grid">
+        <div>R$ 847 mil <span>média movimentada/mês pelos alunos</span></div>
+        <div>94% <span>taxa de aprovação dos participantes</span></div>
+        <div>4.2x <span>melhoria média no hit rate</span></div>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="section-title">Por que escolher a Mentoria MM Broker?</h2>
+      
+      <div class="features">
+        <article class="card">
+          <h3>✅ Mentoria Personalizada</h3>
+          <p>Acompanhamento direto e individualizado para acelerar seus resultados no mercado.</p>
+        </article>
+        <article class="card">
+          <h3>✅ Curso Bônus Completo</h3>
+          <p>+30 horas de conteúdo gravado com estratégias avançadas e fundamentos sólidos.</p>
+        </article>
+        <article class="card">
+          <h3>✅ Estratégias de Curva de Juros</h3>
+          <p>Política monetária, DI, cupom e paridade externa aplicados na prática.</p>
+        </article>
+        <article class="card">
+          <h3>✅ Leitura de Fluxo</h3>
+          <p>Macroeconomia aplicada com análise de grandes players e movimentos institucionais.</p>
+        </article>
+        <article class="card">
+          <h3>✅ Comunidade Exclusiva</h3>
+          <p>Acesso ao grupo privado para trocar experiências e tirar dúvidas diretamente.</p>
+        </article>
+        <article class="card">
+          <h3>🛡️ Gestão de Risco</h3>
+          <p>Plano de risco, dimensionamento de posição e metas diárias com proteção de capital.</p>
+        </article>
+        <article class="card">
+          <h3>⚡ Indicadores Exclusivos</h3>
+          <p>Ferramentas internas para analisar curva de juros e volatilidade do Dólar Futuro.</p>
+        </article>
+        <article class="card">
+          <h3>📈 Regras Claras</h3>
+          <p>Condições objetivas de entrada, alvos e stops — sem achismos, só processo.</p>
+        </article>
+        <article class="card">
+          <h3>💧 Alta Liquidez</h3>
+          <p>Operando em Dólar Futuro e DI, com oportunidades diárias e execução assertiva.</p>
+        </article>
+        <article class="card">
+          <h3>🧩 Exemplos Práticos</h3>
+          <p>Casos reais, prints e passo a passo para aplicar desde o primeiro dia.</p>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="section-title">O que você vai aprender</h2>
+      <div class="bullets">
+        <div class="bullet"><span class="dot"></span>Fundamentos completos de volatilidade e sua importância</div>
+        <div class="bullet"><span class="dot"></span>Estrutura macroeconômica do dólar futuro</div>
+        <div class="bullet"><span class="dot"></span>Estratégia simples e objetiva (alvos e entradas)</div>
+        <div class="bullet"><span class="dot"></span>Leitura de grandes players e fluxo</div>
+        <div class="bullet"><span class="dot"></span>Psicologia do preço e zonas‑chave</div>
+        <div class="bullet"><span class="dot"></span>Breakouts, falsos rompimentos e tape reading</div>
+        <div class="bullet"><span class="dot"></span>DI e Curva de Juros • Paridade Externa • Cupom</div>
+        <div class="bullet"><span class="dot"></span>Parâmetro de abertura, DR1, rolagem e distorções</div>
+        <div class="bullet"><span class="dot"></span>Frequência, GARCH/ARCH e assimetria</div>
+        <div class="bullet"><span class="dot"></span>Curva justa e preço justo (aplicação prática)</div>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="section-title">Resultados dos Alunos</h2>
+      <div class="gallery">
+        <!-- Substitua pelos seus arquivos reais -->
+        <img src="1.jpg" alt="Resultado 1" />
+        <img src="2.jpg" alt="Resultado 2" />
+        <img src="3.jpg" alt="Resultado 3" />
+      </div>
+    </section>
+	<section class="video-section">
+  <h2>Exemplo de OPeração M.M Broker</h2>
+  <div class="video">
+    <video controls preload="metadata">
+      <source src="video.mp4" type="video/mp4" />
+      Seu navegador não suporta vídeo.
+    </video>
+  </div>
+</section>
+
+    <section class="opportunity-cost">
+      <h2>💸 Quanto você está perdendo por MÊS sem essa estratégia?</h2>
+      <p>Enquanto você hesita, outros traders estão aplicando essas técnicas e saindo na frente. Cada dia que passa é dinheiro deixado na mesa. A curva de juros move bilhões diariamente - você vai ficar de fora?</p>
+    </section>
+
+    <section>
+      <div class="cta-final">
+        <button class="btn-primary" onclick="scrollToBottom()">
+          🚀 QUERO DOMINAR A CURVA DE JUROS AGORA
+          <small style="display:block; font-size:0.8rem; font-weight:400; margin-top:4px;">Acesso liberado em 30 segundos</small>
+        </button>
+      </div>
+    </section>
+
+    <!-- Botão flutuante mobile -->
+    <div class="mobile-sticky-cta">
+      <button class="btn-primary" onclick="scrollToBottom()" style="margin:0;">
+        GARANTIR DESCONTO DE R$ 1.000
+        <small style="display:block; font-size:0.75rem; font-weight:400;">Oferta termina em <span id="countdown-mobile">--:--:--</span></small>
+      </button>
+    </div>
+
+    <footer>
+      © 2025 Mentoria MM Broker — Todos os direitos reservados.
+    </footer>
+  </div>
+
+  <!-- Toast de prova social (fake) -->
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <strong>João Gomes</strong> acabou de comprar a Mentoria.<br>
+    <span class="mini">Há 1 min — "Vou aplicar na curva de juros!"</span>
+  </div>
+
+  <script>
+    // Contagem regressiva (1h 59m a partir do primeiro acesso)
+    (function(){
+      const key='mm_offer_deadline';
+      const now=Date.now();
+      let deadline=localStorage.getItem(key);
+      if(!deadline){
+        deadline = now + (1*60*60*1000) + (59*60*1000) + (0*1000); // 1h59m
+        localStorage.setItem(key, String(deadline));
+      } else { deadline = Number(deadline); }
+
+      const el=document.getElementById('countdown');
+      const tick=()=>{
+        const diff=deadline - Date.now();
+        if(diff<=0){ el.textContent='00:00:00'; return; }
+        const h=String(Math.floor(diff/3.6e6)).padStart(2,'0');
+        const m=String(Math.floor((diff%3.6e6)/6e4)).padStart(2,'0');
+        const s=String(Math.floor((diff%6e4)/1e3)).padStart(2,'0');
+        el.textContent = `${h}:${m}:${s}`;
+        requestAnimationFrame(tick);
+      };
+      tick();
+    })();
+
+    // Scroll helper para CTAs
+    function scrollToBottom(){ window.scrollTo({top:document.body.scrollHeight, behavior:'smooth'}); }
+
+    // Sumir com o toast após alguns segundos
+    setTimeout(()=>{ const t=document.getElementById('toast'); if(t){ t.style.opacity='.0'; t.style.transition='opacity .6s ease'; setTimeout(()=>t.remove(),700); } }, 8000);
+  </script>
+</body>
+</html>
